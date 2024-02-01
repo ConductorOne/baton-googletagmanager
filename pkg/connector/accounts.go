@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
@@ -41,6 +42,7 @@ var (
 		EditRole,
 		PublishRole,
 		ReadRole,
+		NoAccessRole,
 	}
 )
 
@@ -184,6 +186,153 @@ func (a *accountBuilder) Grants(ctx context.Context, resource *v2.Resource, pTok
 	}
 
 	return rv, nextPage, nil, nil
+}
+
+func (a *accountBuilder) FindRelevantPermissions(ctx context.Context, accID, userID, permission string, revoke bool) ([]string, error) {
+	var rv []string
+	pageToken := ""
+
+	for {
+		parentPath := fmt.Sprintf("accounts/%s", accID)
+		upl := a.client.Accounts.UserPermissions.List(parentPath).Context(ctx)
+
+		if pageToken != "" {
+			upl = upl.PageToken(pageToken)
+		}
+
+		ups, err := upl.Do()
+		if err != nil {
+			return nil, fmt.Errorf("googletagmanager-connector: failed to list user permissions: %w", err)
+		}
+
+		uParts := strings.Split(userID, ":")
+		if len(uParts) != 2 {
+			return nil, fmt.Errorf("googletagmanager-connector: invalid user id: %s", userID)
+		}
+
+		mail := uParts[1]
+		for _, up := range ups.UserPermission {
+			if up.EmailAddress != mail {
+				continue
+			}
+
+			if up.AccountId != accID {
+				continue
+			}
+
+			if revoke && up.AccountAccess.Permission != permission {
+				continue
+			}
+
+			if !revoke && up.AccountAccess.Permission == permission {
+				continue
+			}
+
+			rv = append(rv, up.Path)
+		}
+
+		if ups.NextPageToken == "" {
+			break
+		}
+
+		pageToken = ups.NextPageToken
+	}
+
+	return rv, nil
+}
+
+func (a *accountBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
+	l := ctxzap.Extract(ctx)
+
+	if principal.Id.ResourceType != userResourceType.Id {
+		l.Warn(
+			"googletagmanager-connector: only users can be granted permissions on accounts",
+			zap.String("principal", principal.Id.Resource),
+			zap.String("principal_type", principal.Id.ResourceType),
+		)
+
+		return nil, fmt.Errorf("googletagmanager-connector: only users can be granted permissions on accounts")
+	}
+
+	accID, userID, permission := entitlement.Resource, principal.Id.Resource, entitlement.Slug
+	pPaths, err := a.FindRelevantPermissions(ctx, accID.Id.Resource, userID, permission, false)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pPaths) == 0 {
+		l.Info(
+			"googletagmanager-connector: permission already granted",
+			zap.String("principal", principal.Id.Resource),
+			zap.String("principal_type", principal.Id.ResourceType),
+			zap.String("permission", permission),
+		)
+
+		return nil, nil
+	}
+
+	for _, pPath := range pPaths {
+		pg, err := a.client.Accounts.UserPermissions.Get(pPath).Context(ctx).Do()
+		if err != nil {
+			return nil, fmt.Errorf("googletagmanager-connector: failed to get permission: %w", err)
+		}
+
+		// update existing permission
+		pg.AccountAccess = &tagmanager.AccountAccess{
+			Permission: permission,
+		}
+
+		// update in API
+		_, err = a.client.Accounts.UserPermissions.Update(pPath, pg).Context(ctx).Do()
+		if err != nil {
+			return nil, fmt.Errorf("googletagmanager-connector: failed to grant permission: %w", err)
+		}
+	}
+
+	return nil, nil
+}
+
+func (a *accountBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
+	l := ctxzap.Extract(ctx)
+
+	principal := grant.Principal
+	entitlement := grant.Entitlement
+
+	if principal.Id.ResourceType != userResourceType.Id {
+		l.Warn(
+			"googletagmanager-connector: only users can have permissions on accounts revoked",
+			zap.String("principal", principal.Id.Resource),
+			zap.String("principal_type", principal.Id.ResourceType),
+		)
+
+		return nil, fmt.Errorf("googletagmanager-connector: only users can have permissions on accounts revoked")
+	}
+
+	accID, userID, permission := entitlement.Resource, principal.Id.Resource, entitlement.Slug
+	pPaths, err := a.FindRelevantPermissions(ctx, accID.Id.Resource, userID, permission, true)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pPaths) == 0 {
+		l.Info(
+			"googletagmanager-connector: permission already revoked",
+			zap.String("principal", principal.Id.Resource),
+			zap.String("principal_type", principal.Id.ResourceType),
+			zap.String("permission", permission),
+		)
+
+		return nil, nil
+	}
+
+	for _, pPath := range pPaths {
+		err := a.client.Accounts.UserPermissions.Delete(pPath).Context(ctx).Do()
+		if err != nil {
+			return nil, fmt.Errorf("googletagmanager-connector: failed to revoke permission: %w", err)
+		}
+	}
+
+	return nil, nil
 }
 
 func newAccountBuilder(client *tagmanager.Service, accounts []string) *accountBuilder {
