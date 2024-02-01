@@ -27,6 +27,7 @@ func main() {
 	}
 
 	cmd.Version = version
+	cmdFlags(cmd)
 
 	err = cmd.Execute()
 	if err != nil {
@@ -38,7 +39,12 @@ func main() {
 func getConnector(ctx context.Context, cfg *config) (types.ConnectorServer, error) {
 	l := ctxzap.Extract(ctx)
 
-	cb, err := connector.New(ctx)
+	credentials, err := os.ReadFile(cfg.CredentialsJSONFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("error reading credentials JSON file: %w", err)
+	}
+
+	cb, err := connector.New(ctx, credentials, cfg.Accounts)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
 		return nil, err
