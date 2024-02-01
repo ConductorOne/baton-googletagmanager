@@ -28,7 +28,6 @@ func (g *GoogleTagManager) ResourceSyncers(ctx context.Context) []connectorbuild
 		newAccountBuilder(g.client, g.accounts),
 		newContainerBuilder(g.client),
 		newUserBuilder(g.client),
-		newRoleBuilder(g.client),
 	}
 }
 
@@ -49,6 +48,11 @@ func (g *GoogleTagManager) Metadata(ctx context.Context) (*v2.ConnectorMetadata,
 // Validate is called to ensure that the connector is properly configured. It should exercise any API credentials
 // to be sure that they are valid.
 func (d *GoogleTagManager) Validate(ctx context.Context) (annotations.Annotations, error) {
+	_, err := d.client.Accounts.List().Context(ctx).Do()
+	if err != nil {
+		return nil, fmt.Errorf("googletagmanager-connector: error validating credentials: %w", err)
+	}
+
 	return nil, nil
 }
 

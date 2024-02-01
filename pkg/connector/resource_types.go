@@ -24,11 +24,4 @@ var (
 		Id:          "container",
 		DisplayName: "Container",
 	}
-
-	// The role resource type is for all possible roles (either account or container).
-	roleResourceType = &v2.ResourceType{
-		Id:          "role",
-		DisplayName: "Role",
-		Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_ROLE},
-	}
 )
