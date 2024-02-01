@@ -55,7 +55,8 @@ func (u *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		return nil, "", nil, fmt.Errorf("googletagmanager-connector: failed to parse page token: %w", err)
 	}
 
-	ulreq := u.client.Accounts.UserPermissions.List(parentResourceID.Resource).Context(ctx)
+	parentPath := fmt.Sprintf("accounts/%s", parentResourceID.Resource)
+	ulreq := u.client.Accounts.UserPermissions.List(parentPath).Context(ctx)
 
 	if page != "" {
 		ulreq = ulreq.PageToken(page)

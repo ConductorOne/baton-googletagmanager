@@ -28,14 +28,3 @@ func parsePageToken(i string, resourceID *v2.ResourceId) (*pagination.Bag, strin
 
 	return b, b.PageToken(), nil
 }
-
-// func prepareParentID(pID *v2.ResourceId) (string, error) {
-// 	switch pID.ResourceType {
-// 	case accountResourceType.Id:
-// 		return fmt.Sprintf("accounts/%s", pID), nil
-// 	case containerResourceType.Id:
-// 		return fmt.Sprintf("containers/%s", pID), nil
-// 	default:
-// 		return "", fmt.Errorf("invalid parent type: %s", pID.ResourceType)
-// 	}
-// }

@@ -49,7 +49,8 @@ func (c *containerBuilder) List(ctx context.Context, parentResourceID *v2.Resour
 		return nil, "", nil, fmt.Errorf("googletagmanager-connector: failed to parse page token: %w", err)
 	}
 
-	clreq := c.client.Accounts.Containers.List(parentResourceID.Resource).Context(ctx)
+	parentPath := fmt.Sprintf("accounts/%s", parentResourceID.Resource)
+	clreq := c.client.Accounts.Containers.List(parentPath).Context(ctx)
 
 	if page != "" {
 		clreq = clreq.PageToken(page)
