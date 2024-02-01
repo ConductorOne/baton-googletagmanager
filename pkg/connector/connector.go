@@ -55,35 +55,39 @@ func (d *GoogleTagManager) Validate(ctx context.Context) (annotations.Annotation
 // New returns a new instance of the connector.
 func New(ctx context.Context, credentials []byte, accounts []string) (*GoogleTagManager, error) {
 	l := ctxzap.Extract(ctx)
-	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, l))
-	if err != nil {
-		return nil, fmt.Errorf("googletagmanager-connector: error creating http client: %w", err)
-	}
 
-	jwt, err := google.JWTConfigFromJSON(
-		credentials,
-		tagmanager.TagmanagerManageAccountsScope,
-		tagmanager.TagmanagerManageUsersScope,
-		tagmanager.TagmanagerEditContainersScope,
-		tagmanager.TagmanagerEditContainerversionsScope,
-		tagmanager.TagmanagerDeleteContainersScope,
-		tagmanager.TagmanagerPublishScope,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("googletagmanager-connector: error creating JWT config: %w", err)
-	}
+	var tagmanagerService *tagmanager.Service
+	if len(credentials) != 0 {
+		httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, l))
+		if err != nil {
+			return nil, fmt.Errorf("googletagmanager-connector: error creating http client: %w", err)
+		}
 
-	ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient)
-	httpClient = &http.Client{
-		Transport: &oauth2.Transport{
-			Base:   httpClient.Transport,
-			Source: jwt.TokenSource(ctx),
-		},
-	}
+		jwt, err := google.JWTConfigFromJSON(
+			credentials,
+			tagmanager.TagmanagerManageAccountsScope,
+			tagmanager.TagmanagerManageUsersScope,
+			tagmanager.TagmanagerEditContainersScope,
+			tagmanager.TagmanagerEditContainerversionsScope,
+			tagmanager.TagmanagerDeleteContainersScope,
+			tagmanager.TagmanagerPublishScope,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("googletagmanager-connector: error creating JWT config: %w", err)
+		}
 
-	tagmanagerService, err := tagmanager.NewService(ctx, option.WithHTTPClient(httpClient))
-	if err != nil {
-		return nil, fmt.Errorf("error creating tagmanager service: %w", err)
+		ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient)
+		httpClient = &http.Client{
+			Transport: &oauth2.Transport{
+				Base:   httpClient.Transport,
+				Source: jwt.TokenSource(ctx),
+			},
+		}
+
+		tagmanagerService, err = tagmanager.NewService(ctx, option.WithHTTPClient(httpClient))
+		if err != nil {
+			return nil, fmt.Errorf("error creating tagmanager service: %w", err)
+		}
 	}
 
 	return &GoogleTagManager{

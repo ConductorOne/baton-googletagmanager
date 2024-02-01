@@ -39,9 +39,13 @@ func main() {
 func getConnector(ctx context.Context, cfg *config) (types.ConnectorServer, error) {
 	l := ctxzap.Extract(ctx)
 
-	credentials, err := os.ReadFile(cfg.CredentialsJSONFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("error reading credentials JSON file: %w", err)
+	var credentials []byte
+	var err error
+	if cfg.CredentialsJSONFilePath != "" {
+		credentials, err = os.ReadFile(cfg.CredentialsJSONFilePath)
+		if err != nil {
+			return nil, fmt.Errorf("error reading credentials JSON file: %w", err)
+		}
 	}
 
 	cb, err := connector.New(ctx, credentials, cfg.Accounts)
