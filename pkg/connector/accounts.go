@@ -326,6 +326,26 @@ func (a *accountBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotatio
 	}
 
 	for _, pPath := range pPaths {
+		// when revoking a admin permission, set permission to minimal user permission
+		if permission == AdminRole {
+			pg, err := a.client.Accounts.UserPermissions.Get(pPath).Context(ctx).Do()
+			if err != nil {
+				return nil, fmt.Errorf("googletagmanager-connector: failed to get permission: %w", err)
+			}
+
+			pg.AccountAccess = &tagmanager.AccountAccess{
+				Permission: UserRole,
+			}
+
+			_, err = a.client.Accounts.UserPermissions.Update(pPath, pg).Context(ctx).Do()
+			if err != nil {
+				return nil, fmt.Errorf("googletagmanager-connector: failed to revoke permission: %w", err)
+			}
+
+			continue
+		}
+
+		// when revoking a minimal user permission or any other, revoke the whole access to the account
 		err := a.client.Accounts.UserPermissions.Delete(pPath).Context(ctx).Do()
 		if err != nil {
 			return nil, fmt.Errorf("googletagmanager-connector: failed to revoke permission: %w", err)
