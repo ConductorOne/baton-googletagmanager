@@ -7,8 +7,8 @@ import (
 
 	"github.com/conductorone/baton-sdk/pkg/cli"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
-	"github.com/conductorone/baton-sdk/pkg/helpers"
 	"github.com/conductorone/baton-sdk/pkg/types"
+	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2/google"
@@ -42,14 +42,14 @@ func main() {
 func getConnector(ctx context.Context, cfg *config) (types.ConnectorServer, error) {
 	l := ctxzap.Extract(ctx)
 
-	var ac helpers.AuthCredentials = &helpers.NoAuth{}
+	var ac uhttp.AuthCredentials = &uhttp.NoAuth{}
 	if cfg.CredentialsJSONFilePath != "" {
 		credentials, err := os.ReadFile(cfg.CredentialsJSONFilePath)
 		if err != nil {
 			return nil, fmt.Errorf("error reading credentials JSON file: %w", err)
 		}
 
-		ac = helpers.NewOAuth2JWT(
+		ac = uhttp.NewOAuth2JWT(
 			credentials,
 			[]string{
 				tagmanager.TagmanagerManageAccountsScope,

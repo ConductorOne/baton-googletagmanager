@@ -8,7 +8,7 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
-	"github.com/conductorone/baton-sdk/pkg/helpers"
+	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"google.golang.org/api/option"
 	"google.golang.org/api/tagmanager/v2"
 )
@@ -53,7 +53,7 @@ func (d *GoogleTagManager) Validate(ctx context.Context) (annotations.Annotation
 }
 
 // New returns a new instance of the connector.
-func New(ctx context.Context, ac helpers.AuthCredentials, accounts []string) (*GoogleTagManager, error) {
+func New(ctx context.Context, ac uhttp.AuthCredentials, accounts []string) (*GoogleTagManager, error) {
 	httpClient, err := ac.GetClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("googletagmanager-connector: error creating http client: %w", err)
