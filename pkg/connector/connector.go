@@ -4,15 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	"google.golang.org/api/tagmanager/v2"
 )
@@ -57,41 +53,15 @@ func (d *GoogleTagManager) Validate(ctx context.Context) (annotations.Annotation
 }
 
 // New returns a new instance of the connector.
-func New(ctx context.Context, credentials []byte, accounts []string) (*GoogleTagManager, error) {
-	l := ctxzap.Extract(ctx)
+func New(ctx context.Context, ac uhttp.AuthCredentials, accounts []string) (*GoogleTagManager, error) {
+	httpClient, err := ac.GetClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("googletagmanager-connector: error creating http client: %w", err)
+	}
 
-	var tagmanagerService *tagmanager.Service
-	if len(credentials) != 0 {
-		httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, l))
-		if err != nil {
-			return nil, fmt.Errorf("googletagmanager-connector: error creating http client: %w", err)
-		}
-
-		jwt, err := google.JWTConfigFromJSON(
-			credentials,
-			tagmanager.TagmanagerManageAccountsScope,
-			tagmanager.TagmanagerManageUsersScope,
-			tagmanager.TagmanagerEditContainersScope,
-			tagmanager.TagmanagerEditContainerversionsScope,
-			tagmanager.TagmanagerDeleteContainersScope,
-			tagmanager.TagmanagerPublishScope,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("googletagmanager-connector: error creating JWT config: %w", err)
-		}
-
-		ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient)
-		httpClient = &http.Client{
-			Transport: &oauth2.Transport{
-				Base:   httpClient.Transport,
-				Source: jwt.TokenSource(ctx),
-			},
-		}
-
-		tagmanagerService, err = tagmanager.NewService(ctx, option.WithHTTPClient(httpClient))
-		if err != nil {
-			return nil, fmt.Errorf("error creating tagmanager service: %w", err)
-		}
+	tagmanagerService, err := tagmanager.NewService(ctx, option.WithHTTPClient(httpClient))
+	if err != nil {
+		return nil, fmt.Errorf("error creating tagmanager service: %w", err)
 	}
 
 	return &GoogleTagManager{

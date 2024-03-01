@@ -1176,6 +1176,10 @@ func Xlog10(t *TLS, x float64) float64 {
 	return math.Log10(x)
 }
 
+func X__builtin_log2(t *TLS, x float64) float64 {
+	return Xlog2(t, x)
+}
+
 func Xlog2(t *TLS, x float64) float64 {
 	if __ccgo_strace {
 		trc("t=%v x=%v, (%v:)", t, x, origin(2))

@@ -8,8 +8,11 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/cli"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	"github.com/conductorone/baton-sdk/pkg/types"
+	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/tagmanager/v2"
 
 	"github.com/conductorone/baton-googletagmanager/pkg/connector"
 )
@@ -39,16 +42,28 @@ func main() {
 func getConnector(ctx context.Context, cfg *config) (types.ConnectorServer, error) {
 	l := ctxzap.Extract(ctx)
 
-	var credentials []byte
-	var err error
+	var ac uhttp.AuthCredentials = &uhttp.NoAuth{}
 	if cfg.CredentialsJSONFilePath != "" {
-		credentials, err = os.ReadFile(cfg.CredentialsJSONFilePath)
+		credentials, err := os.ReadFile(cfg.CredentialsJSONFilePath)
 		if err != nil {
 			return nil, fmt.Errorf("error reading credentials JSON file: %w", err)
 		}
+
+		ac = uhttp.NewOAuth2JWT(
+			credentials,
+			[]string{
+				tagmanager.TagmanagerManageAccountsScope,
+				tagmanager.TagmanagerManageUsersScope,
+				tagmanager.TagmanagerEditContainersScope,
+				tagmanager.TagmanagerEditContainerversionsScope,
+				tagmanager.TagmanagerDeleteContainersScope,
+				tagmanager.TagmanagerPublishScope,
+			},
+			google.JWTConfigFromJSON,
+		)
 	}
 
-	cb, err := connector.New(ctx, credentials, cfg.Accounts)
+	cb, err := connector.New(ctx, ac, cfg.Accounts)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
 		return nil, err
