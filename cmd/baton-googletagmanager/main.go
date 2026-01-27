@@ -51,8 +51,8 @@ func getConnector(ctx context.Context, cc *cfg.Googletagmanager) (types.Connecto
 	}
 
 	var ac uhttp.AuthCredentials = &uhttp.NoAuth{}
-	if cc.CredentialsJSONFilePath != "" {
-		credentials, err := os.ReadFile(cc.CredentialsJSONFilePath)
+	if cc.CredentialsJsonFilePath != "" {
+		credentials, err := os.ReadFile(cc.CredentialsJsonFilePath)
 		if err != nil {
 			return nil, fmt.Errorf("error reading credentials JSON file: %w", err)
 		}

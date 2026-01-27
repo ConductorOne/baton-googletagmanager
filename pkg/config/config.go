@@ -33,7 +33,7 @@ var Config = field.NewConfiguration([]field.SchemaField{
 // ValidateConfig is run after the configuration is loaded, and should return an
 // error if it isn't valid.
 func ValidateConfig(cfg *Googletagmanager) error {
-	if cfg.CredentialsJSONFilePath == "" {
+	if cfg.CredentialsJsonFilePath == "" {
 		return fmt.Errorf("path to credentials JSON file is required, use --help for more information")
 	}
 
