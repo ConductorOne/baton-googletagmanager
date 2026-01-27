@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/conductorone/baton-sdk/pkg/cli"
+	cfg "github.com/conductorone/baton-googletagmanager/pkg/config"
+	"github.com/conductorone/baton-googletagmanager/pkg/connector"
+	"github.com/conductorone/baton-sdk/pkg/config"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
+	"github.com/conductorone/baton-sdk/pkg/connectorrunner"
 	"github.com/conductorone/baton-sdk/pkg/types"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/tagmanager/v2"
-
-	"github.com/conductorone/baton-googletagmanager/pkg/connector"
 )
 
 var version = "dev"
@@ -22,15 +23,19 @@ var version = "dev"
 func main() {
 	ctx := context.Background()
 
-	cfg := &config{}
-	cmd, err := cli.NewCmd(ctx, "baton-googletagmanager", cfg, validateConfig, getConnector)
+	_, cmd, err := config.DefineConfiguration(
+		ctx,
+		"baton-googletagmanager",
+		getConnector,
+		cfg.Config,
+		connectorrunner.WithDefaultCapabilitiesConnectorBuilder(&connector.GoogleTagManager{}),
+	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 
 	cmd.Version = version
-	cmdFlags(cmd)
 
 	err = cmd.Execute()
 	if err != nil {
@@ -39,12 +44,15 @@ func main() {
 	}
 }
 
-func getConnector(ctx context.Context, cfg *config) (types.ConnectorServer, error) {
+func getConnector(ctx context.Context, cc *cfg.Googletagmanager) (types.ConnectorServer, error) {
 	l := ctxzap.Extract(ctx)
+	if err := cfg.ValidateConfig(cc); err != nil {
+		return nil, err
+	}
 
 	var ac uhttp.AuthCredentials = &uhttp.NoAuth{}
-	if cfg.CredentialsJSONFilePath != "" {
-		credentials, err := os.ReadFile(cfg.CredentialsJSONFilePath)
+	if cc.CredentialsJSONFilePath != "" {
+		credentials, err := os.ReadFile(cc.CredentialsJSONFilePath)
 		if err != nil {
 			return nil, fmt.Errorf("error reading credentials JSON file: %w", err)
 		}
@@ -63,7 +71,7 @@ func getConnector(ctx context.Context, cfg *config) (types.ConnectorServer, erro
 		)
 	}
 
-	cb, err := connector.New(ctx, ac, cfg.Accounts)
+	cb, err := connector.New(ctx, ac, cc.Accounts)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
 		return nil, err
