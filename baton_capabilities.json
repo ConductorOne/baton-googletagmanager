@@ -9,7 +9,8 @@
       "capabilities":  [
         "CAPABILITY_SYNC",
         "CAPABILITY_PROVISION"
-      ]
+      ],
+      "permissions":  {}
     },
     {
       "resourceType":  {
@@ -19,7 +20,8 @@
       "capabilities":  [
         "CAPABILITY_SYNC",
         "CAPABILITY_PROVISION"
-      ]
+      ],
+      "permissions":  {}
     },
     {
       "resourceType":  {
@@ -36,7 +38,13 @@
       },
       "capabilities":  [
         "CAPABILITY_SYNC"
-      ]
+      ],
+      "permissions":  {}
     }
-  ]
+  ],
+  "connectorCapabilities":  [
+    "CAPABILITY_PROVISION",
+    "CAPABILITY_SYNC"
+  ],
+  "credentialDetails":  {}
 }
