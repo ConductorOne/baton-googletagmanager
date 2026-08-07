@@ -22,7 +22,6 @@ func (u *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 
 func userResource(ctx context.Context, mail string, parent *v2.ResourceId) (*v2.Resource, error) {
 	userTraitOptions := []rs.UserTraitOption{
-		rs.WithStatus(v2.UserTrait_Status_STATUS_ENABLED),
 		rs.WithEmail(mail, true),
 		rs.WithUserLogin(mail),
 	}
@@ -33,6 +32,7 @@ func userResource(ctx context.Context, mail string, parent *v2.ResourceId) (*v2.
 		userResourceType,
 		userID,
 		userTraitOptions,
+		rs.WithResourceStatus(v2.Status_RESOURCE_STATUS_ENABLED, ""),
 		rs.WithParentResourceID(parent),
 	)
 
