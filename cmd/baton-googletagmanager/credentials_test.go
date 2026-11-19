@@ -104,6 +104,7 @@ func TestCredentialAuthRejectsUnsafeFiles(t *testing.T) {
 			m["credential_source"] = map[string]any{"executable": map[string]any{"command": "id"}}
 		}},
 		{"hostile token uri", func(m map[string]any) { m["token_uri"] = "https://attacker.example/token" }},
+		{"unknown field", func(m map[string]any) { m["future_google_field"] = "private-value" }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			m := make(map[string]any, len(valid))
@@ -111,8 +112,12 @@ func TestCredentialAuthRejectsUnsafeFiles(t *testing.T) {
 				m[k] = v
 			}
 			tc.mutate(m)
-			if _, err := loadCredentialAuth(writeCredential(t, m)); err == nil {
+			_, err := loadCredentialAuth(writeCredential(t, m))
+			if err == nil {
 				t.Fatal("unsafe credential accepted")
+			}
+			if tc.name == "unknown field" && (!strings.Contains(err.Error(), "future_google_field") || strings.Contains(err.Error(), "private-value")) {
+				t.Fatalf("unknown field diagnostic was unsafe or unhelpful: %v", err)
 			}
 		})
 	}
