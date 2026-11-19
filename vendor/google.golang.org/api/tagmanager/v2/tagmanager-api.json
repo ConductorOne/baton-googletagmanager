@@ -217,6 +217,7 @@
         "containers": {
           "methods": {
             "combine": {
+              "deprecated": true,
               "description": "Combines Containers.",
               "flatPath": "tagmanager/v2/accounts/{accountsId}/containers/{containersId}:combine",
               "httpMethod": "POST",
@@ -401,6 +402,7 @@
               ]
             },
             "move_tag_id": {
+              "deprecated": true,
               "description": "Move Tag ID out of a Container.",
               "flatPath": "tagmanager/v2/accounts/{accountsId}/containers/{containersId}:move_tag_id",
               "httpMethod": "POST",
@@ -519,6 +521,7 @@
             "destinations": {
               "methods": {
                 "get": {
+                  "deprecated": true,
                   "description": "Gets a Destination.",
                   "flatPath": "tagmanager/v2/accounts/{accountsId}/containers/{containersId}/destinations/{destinationsId}",
                   "httpMethod": "GET",
@@ -545,6 +548,7 @@
                   ]
                 },
                 "link": {
+                  "deprecated": true,
                   "description": "Adds a Destination to this Container and removes it from the Container to which it is currently linked.",
                   "flatPath": "tagmanager/v2/accounts/{accountsId}/containers/{containersId}/destinations:link",
                   "httpMethod": "POST",
@@ -3986,7 +3990,7 @@
       }
     }
   },
-  "revision": "20251203",
+  "revision": "20260826",
   "rootUrl": "https://tagmanager.googleapis.com/",
   "schemas": {
     "Account": {
@@ -6452,6 +6456,26 @@
         "convertNullToValue": {
           "$ref": "Parameter",
           "description": "The value to convert if a variable value is null."
+        },
+        "convertToBoolean": {
+          "description": "The option to convert a variable value to a boolean.",
+          "type": "boolean"
+        },
+        "convertToNumber": {
+          "description": "The option to convert a variable value to a number.",
+          "enum": [
+            "decimalSeparatorTypeUnspecified",
+            "period",
+            "comma",
+            "automatic"
+          ],
+          "enumDescriptions": [
+            "",
+            "The option to convert a variable value to a number with a period as the decimal separator.",
+            "The option to convert a variable value to a number with a comma as the decimal separator.",
+            "The option to convert a variable value to a number with automatic decimal separator detection."
+          ],
+          "type": "string"
         },
         "convertTrueToValue": {
           "$ref": "Parameter",
